@@ -1,0 +1,36 @@
+import boto3
+from datetime import datetime, timedelta
+import pytz
+
+def lambda_handler(event, context):
+    # Initialize Systems Manager client
+    ssm_client = boto3.client('ssm')
+    
+    # Get current time in London timezone
+    london_timezone = pytz.timezone('Europe/London')
+    london_time = datetime.now(london_timezone)
+    
+    # Check if it's British Summer Time (BST)
+    is_dst = london_time.dst() != timedelta(0)  
+    
+    
+    # Define your maintenance windows and their standard and DST schedules
+    maintenance_windows = {
+        'maintenance-window-id1': {'standard': 'cron(0 13 ? * * *)', 'dst': 'cron(0 12 ? * * *)'},
+        'maintenance-window-id2': {'standard': 'cron(0 15 ? * * *)', 'dst': 'cron(0 14 ? * * *)'},
+        'maintenance-window-id3': {'standard': 'cron(0 17 ? * * *)', 'dst': 'cron(0 16 ? * * *)'},
+        # Add more maintenance windows as needed
+    }
+    
+    # Update each maintenance window schedule based on whether it's DST in London
+    for window_id, schedules in maintenance_windows.items():
+        # Determine the new cron expression based on whether it is currently BST
+        new_schedule = schedules['dst'] if is_dst else schedules['standard']
+    
+        # Update the maintenance window schedule
+    response = ssm_client.update_maintenance_window(
+        WindowId=window_id,
+        Schedule=new_schedule
+    )
+    # Print out the response from the update call
+    print(f"Updated Maintenance Window: {window_id}, New Schedule: {new_schedule}, Response: {response}")
